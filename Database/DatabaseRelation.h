@@ -24,6 +24,7 @@ public:
 	//databaseRelation(string nam, scheme rel);
 	DatabaseRelation(string nam, Scheme rel, set<Toople> tup);
 	string toString();
+	Relation join(Relation result, Relation toJoin1, Relation toJoin2);
 
 };
 

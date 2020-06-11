@@ -31,6 +31,7 @@ public:
 	//Relation select(string searchVal, vector<int> col);
 
 	Relation rename(string renameVal, int col);
+	Relation rename(vector <string> renameVal, vector <int> col);
 
 	Relation project(vector<string> toProject);
 
@@ -39,7 +40,12 @@ public:
 	void addTuple(Toople toop);
 	string toString();
 
+	Relation join(Relation toJoin);
+	bool isJoinable(Toople T1, Toople T2, vector<string> name1, vector<string> name2);
+	Toople joinTuples(Toople T1, Toople T2, vector<string> name1, vector<string> name2);
 
+	Relation join(Relation toJoin1, Relation toJoin2);
+	vector<string> Uniter(Relation toUnite);
 
 
 };

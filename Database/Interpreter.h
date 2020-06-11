@@ -21,17 +21,25 @@ using namespace std;
 
 class Interpreter {
 protected:
+	bool tupAdded = false;
 	datalog dave;
 	string nam;
+	string allRules = "Rule Evaluation";
 	Scheme green;
-	string totalQuer;
+	string totalQuer = "Query Evaluation\n";
 	DatabaseRelation everything;
 	DatabaseRelation Queried;
+	DatabaseRelation Ruled;
 	vector<parameter> keep;
 	map<string, int> stores;
 
 public:
 	Interpreter(datalog dats);
+
+	void evalRules(vector<Rule> evaluatate);
+	Relation eval1Rule(Rule toEval);
+	Relation evalPredicate(Predicate toEval);
+	Relation united(Relation old, Relation toAdd);
 
 	string toString();
 	string evalQueries();

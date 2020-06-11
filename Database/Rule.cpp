@@ -10,6 +10,13 @@ Rule::Rule(Predicate head, Token col, vector<Predicate> rulz, Token per) {
 	period = per;
 }
 
+Predicate Rule:: getHead() {
+	return header;
+}
+vector<Predicate> Rule:: getRules() {
+	return rules;
+}
+
 string Rule::toString() {
 	string returnable;
 	returnable += header.toString();

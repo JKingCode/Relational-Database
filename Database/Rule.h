@@ -23,7 +23,12 @@ public:
 	Rule(/*this will need arguments, but I'm not sure what yet. */);
 	Rule(Predicate head, Token col, vector<Predicate> rulz, Token per);
 	string toString();
+
+	Predicate getHead();
+	vector<Predicate> getRules();
 };
+
+
 
 
 
