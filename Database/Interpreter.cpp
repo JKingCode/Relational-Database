@@ -9,7 +9,6 @@ Interpreter::Interpreter(datalog dats) {
 	Relation alldata;
 	map<string, Scheme> storem;
 	vector<string> tuscheme;
-	int passes = 0;
 
 	dave = dats;
 
@@ -58,16 +57,69 @@ Interpreter::Interpreter(datalog dats) {
 
 
 	}
+	//will have to figure out what to do with trivial cases (only run rule once on those)
 
-	evalRules(dats.getRules());
-	passes++;
-	while (tupAdded) {
-		evalRules(dats.getRules());
+	depGraph(dats.getRules());
+	vector<vector<int>> totSCC;
+	//int weOn = 0;
+	totSCC = SCC();
+
+	for (unsigned int i = 0; i < totSCC.size(); i++) {
+		vector<int> ruleNumber;
+		passes = 0;
+		bool time1 = true;
+		if (totSCC[i].size() == 1) {
+			for (int k : graph[totSCC[i][0]].edges) {
+				if (k == totSCC[i][0]) {
+					time1 = false;
+				}
+			}
+			if (time1) {
+				//what in typical situation 
+				allRules += "\nSCC: R" + to_string(totSCC[i][0]);
+				allRules += "\n" + graph[totSCC[i][0]].rul.toString();
+				eval1Rule(graph[totSCC[i][0]].rul);
+				allRules += "\n1 passes: R" + to_string(totSCC[i][0]);
+				continue;
+			}
+		}
+		vector<Rule> red4eval;
+		for (unsigned int j = 0; j < totSCC[i].size(); j++) {
+			ruleNumber.push_back(totSCC[i][j]);
+			red4eval.push_back(graph[totSCC[i][j]].rul);
+			//cout << graph[totSCC[i][j]].rul.toString();
+		}
+		allRules += "\nSCC: ";
+		for (unsigned int j = 0; j < ruleNumber.size(); j++) {
+			// we haz sum problems here
+			allRules += "R";
+			//string nnknkn = to_string(ruleNumber[i]);
+			allRules += to_string(ruleNumber[j]);
+			allRules += ",";
+		}
+		if (ruleNumber.size() >= 1) {
+			allRules.pop_back();
+		}
+		//allRules += "\nSCC: R" + to_string(ruleNumber[weOn]);
+		evalRules(red4eval);
 		passes++;
+		while (tupAdded) {
+			evalRules(red4eval);
+			passes++;
+		}
+		allRules += "\n" + to_string(passes);
+		allRules += " passes: ";
+		for (unsigned int j = 0; j < ruleNumber.size(); j++) {
+			allRules += "R" + to_string(ruleNumber[j]) + ",";
+		}
+		allRules.pop_back();
+		//weOn++;
+
 	}
 
-	allRules += "\n\nSchemes populated after " + to_string(passes);
-	allRules += " passes through the Rules.\n\n";
+	
+
+
 
 	evalQueries();
 
@@ -86,10 +138,128 @@ Interpreter::Interpreter(datalog dats) {
 
 }
 
+void Interpreter:: depGraph(vector<Rule> ruleList) {
+	for (unsigned int i = 0; i < ruleList.size(); i++) {
+		Node temp = Node(i, ruleList[i]);
+		
+		graph[i] = temp;
+		reverseGraph[i] = temp;
+	}
+
+
+	for (unsigned int i = 0; i < ruleList.size(); i++) {
+		for (unsigned int g = 0; g < ruleList[i].getRules().size(); g++) {
+			for (unsigned int k = 0; k < ruleList.size(); k++) {
+				if (ruleList[i].getRules()[g].getID().getVal() == ruleList[k].getHead().getID().getVal()) {
+					graph.at(i).edges.insert(k);
+				}
+			}
+		}
+	}
+	reverseDepGraph(graph);
+}
+
+void Interpreter:: reverseDepGraph(map<int, Node> firstGraph) {
+	
+	int k = 0;
+	for (pair<int, Node> element : firstGraph) {
+		for (int i : element.second.edges) {
+			//set<int> addin = reverseGraph.at(i).edges;
+			reverseGraph.at(i).edges.insert(element.first);
+			//addin.insert(k);
+		}
+		k++;
+	}
+
+
+	//returnable += "\n";
+
+	postNum = 1;
+	for (pair<int, Node> element : reverseGraph) {
+		if (element.second.visited == false) {
+			DFSForest(element.first);
+		}
+	}
+
+
+
+}
+//recommended that this be in a graph class. 
+int Interpreter:: DFSForest(int rulNum) {
+	//ask about this one. Looks like an infinite loop to me. 
+	//may need to look through the edges to see which one is the lowest number and then check if it was visted starting w/lowest
+	reverseGraph.at(rulNum).visited = true;
+	for (int i : reverseGraph.at(rulNum).edges) {
+		if (reverseGraph.at(i).visited == false) {
+			//reverseGraph.at(rulNum).visited = true;
+			DFSForest(i);
+		}
+	}
+	//reverseGraph.at(rulNum).visited = true;
+		reverseGraph.at(rulNum).postorder = postNum;
+		allPosts.push(rulNum);
+		worthlessToo.push_back(rulNum);
+		//reverseGraph.at(rulNum).visited = true;
+		postNum++;
+	return rulNum;
+}
+vector<vector<int>> Interpreter:: SCC() {
+	vector<vector<int>> returnable;
+	//int start;
+	//int bigPost = 1;
+	/*
+	for (pair<int, Node> element : graph) {
+		element.second.visited = false;
+		
+		if (element.second.postorder > bigPost) {
+			bigPost = element.second.postorder;
+			start = element.first;
+		}
+	
+	}
+	*/
+
+
+	worthless = allPosts.top();
+	while (!allPosts.empty()) {
+		//cout << "\nwhere we at: " << allPosts.top() << endl;
+		SCCGroup.clear();
+		worthless = 0;
+		DFSForward(allPosts.top());
+		sort(SCCGroup.begin(), SCCGroup.end());
+		returnable.push_back(SCCGroup);
+		//cout << SCCGroup.size();
+	}
+
+	
+	
+	return returnable;
+}
+
+int Interpreter::DFSForward(int rulNum) {
+
+	//cout << "WHY?!?!?\n" << rulNum << graph.at(rulNum).edges.size() << graph.at(rulNum).rul.toString();
+	graph.at(rulNum).visited = true;
+		
+	for (int i : graph.at(rulNum).edges) {
+		if (graph.at(i).visited == false) {
+			//cout << graph.at(rulNum).edges.size();
+			DFSForward(i);
+		}
+	}
+	graph.at(rulNum).visited = true;
+		worthless++;
+		allPosts.pop();
+		SCCGroup.push_back(rulNum);
+		//SCCGroup.push_back(rulNum);
+	return rulNum;
+}
+
 void Interpreter::evalRules(vector<Rule> evaluatate) {
 
 	tupAdded = false;
 	for (unsigned int i = 0; i < evaluatate.size(); i++) {
+			allRules += "\n" + evaluatate[i].toString();
 		Ruled[evaluatate[i].getHead().getID().getVal()] = Relation(eval1Rule(evaluatate[i]));
 	}
 
@@ -168,8 +338,7 @@ Relation Interpreter::eval1Rule(Rule toEval) {
 
 
 	//getting the string for all rules
-	allRules += "\n";
-	allRules += toEval.toString();
+	
 
 	/*
 	if (everything[table].getTup().size() < returnable.getTup().size()) {
@@ -483,6 +652,21 @@ Relation Interpreter:: project(Relation toChange, vector<string> toProject) {
 
 string Interpreter::toString() {
 	string returnable;
+
+	returnable += "Dependency Graph\n";
+	for (pair<int, Node> element : graph) {
+		returnable += "R" + to_string(element.first) + ":";
+		for (int j : element.second.edges) {
+			returnable += "R" + to_string(j) + ",";
+		}
+		if (element.second.edges.size() >= 1) {
+			returnable.pop_back();
+		}
+		returnable += "\n";
+	}
+	returnable += "\n";
+
+
 	returnable += allRules;
 
 	returnable += totalQuer;
